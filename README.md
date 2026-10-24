@@ -4,7 +4,7 @@ A digital version of the **periodontal case sheet** used by 4th-year students at
 
 > Works together with the **Perio Supervisor** app (the doctor's side).
 
-**Open the app:** `https://UOK-dentistry-college.github.io/perio-case-sheet-student/`
+**Open the app:** [`https://UOK-dentistry-college.github.io/perio-case-sheet-student/`](https://UOK-dentistry-college.github.io/perio-case-sheet-student/)
 
 ---
 
@@ -22,9 +22,12 @@ A digital version of the **periodontal case sheet** used by 4th-year students at
 2. Tap the menu **⋮** → **Install app** (or **Add to Home screen**).
 or
 **Android (the app)**
-1. Go to realeses, and download the lataest APK version.
+1. Go to [`realeses`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the lataest APK version.
 2. after the download is completed open the APK file and install it.
 
+**Computer (the app)**
+1. Go to [`realeses`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the lataest EXE version.
+2. after the download is completed open the EXE file and install it.
 ---
 
 ## How a case works
