@@ -2886,6 +2886,27 @@ function qrSvg(t,ec){qrcode.stringToBytes=function(s){return Array.from(te.encod
 function modal(html,onClose){var o=document.createElement("div");o.style.cssText="position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px;font:15px/1.4 Calibri,Carlito,Arial,sans-serif";
  o.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;max-width:440px;width:100%;max-height:92vh;overflow:auto;padding:16px">'+html+'<div style="text-align:center;margin-top:12px"><button data-x style="border:1px solid #bbb;background:#fff;color:#111;border-radius:8px;padding:8px 20px;font:inherit;cursor:pointer">Close</button></div></div>';
  document.body.appendChild(o);function close(){if(o.parentNode)o.parentNode.removeChild(o);if(onClose)onClose()}o.querySelector("[data-x]").onclick=close;return{el:o,close:close}}
+function calPick(iso,cb){
+ var now=new Date(),ref=iso&&/^\d{4}-\d\d-\d\d$/.test(iso)?new Date(iso+"T00:00:00"):now,vy=ref.getFullYear(),vm=ref.getMonth(),
+  MN=["January","February","March","April","May","June","July","August","September","October","November","December"],
+  p2=function(n){return("0"+n).slice(-2)},tod=now.getFullYear()+"-"+p2(now.getMonth()+1)+"-"+p2(now.getDate()),
+  B="border:1px solid #ccc;background:#fff;color:#111;border-radius:8px;font:inherit;cursor:pointer;";
+ var m=modal('<div data-cal></div>'),box=m.el.querySelector("[data-cal]");
+ function draw(){
+  var first=(new Date(vy,vm,1).getDay()+1)%7,dim=new Date(vy,vm+1,0).getDate(),h='<div style="display:flex;align-items:center;gap:4px;margin-bottom:8px"><button data-cy="-1" style="'+B+'padding:8px 10px">«</button><button data-cm="-1" style="'+B+'padding:8px 12px">‹</button><b style="flex:1;text-align:center">'+MN[vm]+" "+vy+'</b><button data-cm="1" style="'+B+'padding:8px 12px">›</button><button data-cy="1" style="'+B+'padding:8px 10px">»</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center">';
+  ["Sa","Su","Mo","Tu","We","Th","Fr"].forEach(function(d){h+='<div style="font-size:12px;color:#777;padding:2px 0">'+d+"</div>"});
+  for(var i=0;i<first;i++)h+="<span></span>";
+  for(var d=1;d<=dim;d++){var v=vy+"-"+p2(vm+1)+"-"+p2(d),on=v===iso,td=v===tod;h+='<button data-d="'+v+'" style="'+B+"padding:10px 0;"+(on?"background:#0f766e;color:#fff;border-color:#0f766e;":td?"border-color:#0f766e;font-weight:700;":"")+'">'+d+"</button>"}
+  h+='</div><div style="display:flex;gap:8px;margin-top:10px"><button data-today style="'+B+'flex:1;padding:9px">Today</button><button data-clr style="'+B+'flex:1;padding:9px">Clear</button></div>';
+  box.innerHTML=h}
+ box.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
+  if(b.dataset.cm){vm+=+b.dataset.cm;if(vm<0){vm=11;vy--}if(vm>11){vm=0;vy++}draw();return}
+  if(b.dataset.cy){vy+=+b.dataset.cy;draw();return}
+  if(b.dataset.d){m.close();cb(b.dataset.d);return}
+  if(b.hasAttribute("data-today")){m.close();cb(tod);return}
+  if(b.hasAttribute("data-clr")){m.close();cb("")}});
+ draw();
+}
 function scan(cb){var alive=true,stream=null,bd=window.BarcodeDetector?new BarcodeDetector({formats:["qr_code"]}):null,
  btn='display:block;flex:1;text-align:center;border:1px solid #0f766e;color:#0f766e;border-radius:8px;padding:10px 6px;font-weight:700;cursor:pointer',
  m=modal('<b>Scan QR code</b><video playsinline muted style="width:100%;border-radius:8px;margin-top:8px;background:#000;min-height:120px"></video><div data-st style="font-size:13px;color:#555;margin:6px 0">Starting camera…</div><div style="display:flex;gap:8px"><label style="'+btn+';background:#0f766e;color:#fff">Take photo<input type="file" accept="image/*" capture="environment" style="display:none"></label><label style="'+btn+'">From gallery<input type="file" accept="image/*" style="display:none"></label></div><div style="font-size:12px;color:#777;margin-top:8px">If the live camera doesn’t start, tap “Take photo”, fill the frame with the QR code and hold steady.</div>',function(){alive=false;if(stream)stream.getTracks().forEach(function(t){t.stop()})}),
@@ -2900,7 +2921,7 @@ function scan(cb){var alive=true,stream=null,bd=window.BarcodeDetector?new Barco
  function loop(){if(!alive)return;if(v.videoWidth){var t=dec(v,v.videoWidth,v.videoHeight,false);if(t)return done(t)}setTimeout(loop,120)}
  function fail(e){st.textContent=(e&&e.name==="NotAllowedError"?"This page isn’t allowed to use the camera here. ":"Live camera isn’t available. ")+"Use “Take photo” below."}
  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(s){if(!alive){s.getTracks().forEach(function(t){t.stop()});return}stream=s;v.srcObject=s;v.play();st.textContent="Point the camera at the QR code.";loop()}).catch(fail);else fail()}
-return{CCL:CCL,startStr:startStr,parseStart:parseStart,b64:b64,unb64:unb64,rid:rid,rcode:rcode,caseStr:caseStr,parseCase:parseCase,seal:seal,parseScore:parseScore,verify:verify,open:open,fp:fp,newKeys:newKeys,importPriv:importPriv,sigEnc:sigEnc,sigSvg:sigSvg,sigPng:sigPng,qrSvg:qrSvg,modal:modal,scan:scan}
+return{CCL:CCL,startStr:startStr,parseStart:parseStart,b64:b64,unb64:unb64,rid:rid,rcode:rcode,caseStr:caseStr,parseCase:parseCase,seal:seal,parseScore:parseScore,verify:verify,open:open,fp:fp,newKeys:newKeys,importPriv:importPriv,sigEnc:sigEnc,sigSvg:sigSvg,sigPng:sigPng,qrSvg:qrSvg,modal:modal,scan:scan,calPick:calPick}
 })();
 var KL=(function(){
 var S0=function(){return{q:"",f:{},sort:"time",dir:-1,sel:{},mode:false,open:false,bundle:"",vis:[]}},STS={cases:S0(),folders:S0()},st=STS.cases,ctx,bar,list;
@@ -2919,7 +2940,7 @@ function apply(all){
  var f=st.f,q=st.q.trim().toLowerCase(),cb=curB(),d1=f.d1?new Date(f.d1+"T00:00:00").getTime():null,d2=f.d2?new Date(f.d2+"T23:59:59").getTime():null;
  var r=all.filter(function(x){
   if(q&&(x.name+" "+x.student+" "+x.group).toLowerCase().indexOf(q)<0)return false;
-  if(f.group&&x.group!==f.group)return false;if(f.gender&&x.gender!==f.gender)return false;
+  if(f.group&&x.group!==f.group)return false;if(f.gender&&x.gender!==f.gender)return false;if(f.docs&&f.docs.length&&f.docs.indexOf(x.doc||"")<0)return false;
   if(f.scored==="1"&&x.score==null)return false;if(f.scored==="0"&&x.score!=null)return false;
   if((d1!==null&&!(x.date>=d1))||(d2!==null&&!(x.date<=d2)))return false;
   if(!rng(x.bop,f.b1,f.b2)||!rng(x.cli,f.c1,f.c2)||!rng(x.score,f.s1,f.s2)||!rng(x.age,f.a1,f.a2))return false;
@@ -2951,18 +2972,26 @@ function home(){
  var c=bar&&bar.querySelector("[data-kcount]");if(c)c.textContent=B.length+" bundle"+(B.length===1?"":"s");return true}
 var IC_F='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>',IC_S='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg>';
 function dfmt(iso){return iso?iso.split("-").reverse().join("/"):""}
-function dIn(l,k){return'<label>'+l+'<input data-kd="'+k+'" type="text" inputmode="numeric" dir="ltr" lang="en" maxlength="10" placeholder="DD/MM/YYYY" value="'+esc(dfmt(st.f[k]))+'"></label>'}
+function dIn(l,k){return'<label>'+l+'<input data-kd="'+k+'" type="text" readonly dir="ltr" lang="en" placeholder="Tap to pick a date" value="'+esc(dfmt(st.f[k]))+'" style="cursor:pointer;background:#fff"></label>'}
 function popFilter(){
- var gs=[],f=st.f;ctx.items().forEach(function(x){if(x.group&&gs.indexOf(x.group)<0)gs.push(x.group)});gs.sort();
+ var ds=[];ctx.items().forEach(function(x){if(x.doc&&ds.indexOf(x.doc)<0)ds.push(x.doc)});ds.sort();var sd=(st.f.docs||[]),dlab=function(){var s=st.f.docs||[];return s.length?s.map(function(d){return"Dr. "+d}).join(", "):"Any"},docsSel=ds.length?'<label>Graded by<button type="button" data-kdocs style="display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;box-sizing:border-box;min-height:38px;padding:8px 9px;border:1px solid #bbb;border-radius:8px;font:inherit;font-size:15px;background:#fff;color:#111;cursor:pointer;text-align:left"><span dir="auto" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(dlab())+'</span><span style="flex:none">▾</span></button></label>':"<span></span>";var gs=[],f=st.f;ctx.items().forEach(function(x){if(x.group&&gs.indexOf(x.group)<0)gs.push(x.group)});gs.sort();
  var op=function(v,cur,t){return'<option value="'+esc(v)+'"'+(cur===v?" selected":"")+'>'+esc(t||v)+'</option>'},
   rg=function(l,a,b){return'<label>'+l+'<span class="rg"><input data-kf="'+a+'" inputmode="decimal" placeholder="min" value="'+esc(f[a]||"")+'"><input data-kf="'+b+'" inputmode="decimal" placeholder="max" value="'+esc(f[b]||"")+'"></span></label>'};
- var m=KC.modal('<div class="kl" style="padding:0"><b style="font-size:16px">Filters</b><div class="klp"><label>Group<select data-kf="group">'+op("",f.group||"","Any")+gs.map(function(g){return op(g,f.group||"")}).join("")+'</select></label><label>Gender<select data-kf="gender">'+op("",f.gender||"","Any")+op("M",f.gender)+op("F",f.gender)+'</select></label><label>Status<select data-kf="scored">'+op("",f.scored||"","Any")+op("1",f.scored,"Scored")+op("0",f.scored,"Not scored")+'</select></label><span></span>'+dIn('Case date from','d1')+dIn('Case date to','d2')+''+rg("BOP %","b1","b2")+rg("Calculus score","c1","c2")+rg("Final score","s1","s2")+rg("Age","a1","a2")+'</div><div class="klr"><button data-rs>Reset all</button></div></div>');
+ var m=KC.modal('<div class="kl" style="padding:0"><b style="font-size:16px">Filters</b><div class="klp"><label>Group<select data-kf="group">'+op("",f.group||"","Any")+gs.map(function(g){return op(g,f.group||"")}).join("")+'</select></label><label>Gender<select data-kf="gender">'+op("",f.gender||"","Any")+op("M",f.gender)+op("F",f.gender)+'</select></label><label>Status<select data-kf="scored">'+op("",f.scored||"","Any")+op("1",f.scored,"Scored")+op("0",f.scored,"Not scored")+'</select></label>'+docsSel+dIn('Case date from','d1')+dIn('Case date to','d2')+''+rg("BOP %","b1","b2")+rg("Calculus score","c1","c2")+rg("Final score","s1","s2")+rg("Age","a1","a2")+'</div><div class="klr"><button data-rs>Reset all</button></div></div>');
  m.el.addEventListener("input",function(e){var t=e.target;
+  if(t.hasAttribute&&t.hasAttribute("data-kdoc")){st.f.docs=[].map.call(m.el.querySelectorAll("[data-kdoc]:checked"),function(x){return x.value});if(!st.f.docs.length)delete st.f.docs;drawBar();rr();return}
   if(t.dataset&&t.dataset.kd){var v=t.value.replace(/[\u0660-\u0669]/g,function(c){return c.charCodeAt(0)-1632}).replace(/\D/g,"").slice(0,8),o=v;if(v.length>4)o=v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4);else if(v.length>2)o=v.slice(0,2)+"/"+v.slice(2);t.value=o;
    var q=/^(\d\d)\/(\d\d)\/(\d{4})$/.exec(o),ok=false;if(q){var dd=+q[1],mm=+q[2],yy=+q[3],dt=new Date(yy,mm-1,dd);ok=yy>1999&&dt.getMonth()===mm-1&&dt.getDate()===dd}
    st.f[t.dataset.kd]=ok?q[3]+"-"+q[2]+"-"+q[1]:"";t.style.borderColor=o.length===10&&!ok?"#b91c1c":"";drawBar();rr();return}
   if(t.dataset&&t.dataset.kf){st.f[t.dataset.kf]=t.value;drawBar();rr()}});
  m.el.querySelector("[data-rs]").onclick=function(){st.f={};m.close();drawBar();rr();popFilter()};
+ m.el.addEventListener("click",function(e){var t=e.target,bt=t.closest&&t.closest("[data-kdocs]");
+  if(bt){var pm=KC.modal('<b>Graded by</b><div style="font-size:13px;color:#555;margin:2px 0 6px">Choose one or more doctors.</div>'+ds.map(function(d){return'<label style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:16px;color:#111"><input type="checkbox" data-kdoc value="'+esc(d)+'"'+((st.f.docs||[]).indexOf(d)>=0?" checked":"")+' style="width:22px;height:22px;min-width:22px;margin:0;padding:0;flex:none"><span dir="auto">Dr. '+esc(d)+'</span></label>'}).join("")+'<div style="margin-top:8px"><button data-dclr style="border:1px solid #bbb;background:#fff;color:#111;border-radius:8px;padding:8px 16px;font:inherit;cursor:pointer">Any doctor</button></div>');
+   var setT=function(){bt.firstChild.textContent=dlab()};
+   pm.el.addEventListener("change",function(){var s=[].map.call(pm.el.querySelectorAll("[data-kdoc]:checked"),function(x){return x.value});if(s.length)st.f.docs=s;else delete st.f.docs;setT();drawBar();rr()});
+   pm.el.querySelector("[data-dclr]").onclick=function(){delete st.f.docs;[].forEach.call(pm.el.querySelectorAll("[data-kdoc]"),function(x){x.checked=false});setT();drawBar();rr()};
+   return}
+  if(t.dataset&&t.dataset.kd){KC.calPick(st.f[t.dataset.kd]||"",function(iso){if(iso)st.f[t.dataset.kd]=iso;else delete st.f[t.dataset.kd];t.value=dfmt(iso);drawBar();rr()})}});
 }
 function popSort(){
  var m=KC.modal('<div class="kl" style="padding:0"><b style="font-size:16px">Sort by</b>'+SORTS.map(function(x){return'<label class="klk" style="font-size:15px;padding:6px 0"><input type="radio" name="ks" value="'+x[0]+'"'+(st.sort===x[0]?" checked":"")+'> '+x[1]+'</label>'}).join("")+'<div class="klr"><button data-sd="-1" class="'+(st.dir<0?"on":"")+'">↓ Descending</button><button data-sd="1" class="'+(st.dir>0?"on":"")+'">↑ Ascending</button></div></div>');
@@ -3360,7 +3389,7 @@ function bLoad(){try{var r=localStorage.getItem(BK);return r?JSON.parse(r):BM}ca
 function bSave(a){BM=a;try{localStorage.setItem(BK,JSON.stringify(a))}catch(e){}}
 function hItems(){return hLoad().map(function(r){var d=r.data||{},t=d.t||{},c=d.cal||{},tot=0,k;for(k in c)c[k].forEach(function(v){tot+=v});
  var dp=String(r.date||t.date||"").split("/"),dt=dp.length===3?new Date(+dp[2],+dp[1]-1,+dp[0]).getTime():r.savedAt;
- return{id:r.id,name:r.name||"",student:r.student||t.student||"",group:r.group||t.group||"",age:parseFloat(t.age),gender:d.gender||"",bop:parseFloat(r.bop),cli:tot/12*50,score:d.score&&d.score.P?d.score.P.fn:null,date:dt||r.savedAt,saved:r.savedAt,rec:r}})}
+ return{id:r.id,name:r.name||"",student:r.student||t.student||"",group:r.group||t.group||"",age:parseFloat(t.age),gender:d.gender||"",bop:parseFloat(r.bop),cli:tot/12*50,score:d.score&&d.score.P?d.score.P.fn:null,doc:d.score&&d.score.doc||"",date:dt||r.savedAt,saved:r.savedAt,rec:r}})}
 async function bkSel(ids,label){
  var recs=hLoad().filter(function(x){return ids.indexOf(x.id)>=0});if(!recs.length){toast("Nothing selected.");return}
  var bs=bLoad().map(function(b){return{id:b.id,name:b.name,ids:b.ids.filter(function(i){return ids.indexOf(i)>=0})}}).filter(function(b){return b.ids.length}),d=new Date(),p=function(n){return("0"+n).slice(-2)};

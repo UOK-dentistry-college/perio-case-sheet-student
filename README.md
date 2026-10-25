@@ -41,7 +41,7 @@ or
 
 ## History, bundles and backup
 
-- **Cases** tab: search by patient or student, **Filters**, **Sort by**, and **Select** several cases at once.
+- **Cases** tab: search by patient or student, **Filters** (dates are picked from a calendar, and you can filter by the **doctor who graded** the case), **Sort by**, and **Select** several cases at once.
 - **Bundles**: group cases (for example by day or by group) and open them together.
 - **Export PDF** of a case sheet.
 - **Backup** saves your cases to a file; **Import** restores it. Make a backup regularly. Your data lives only on your phone.
