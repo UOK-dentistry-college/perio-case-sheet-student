@@ -129,7 +129,7 @@ h3{font:700 14px "Times New Roman",Times,serif;margin:20px 0 8px}
 </style>
 </head>
 <body>
-<div class="bar"><button class="pri" id="exp">Export PDF</button><button id="sv">Save</button><button id="hs">History</button><button id="qr">QR</button><button id="pf">Profile</button><button id="stb" class="pri">Start</button><button id="rst">New case</button><button class="zb" id="zo" aria-label="Zoom out">−</button><button class="zb" id="zf" aria-label="Fit to screen">Fit</button><button class="zb" id="zi" aria-label="Zoom in">+</button></div>
+<div class="bar"><button class="pri" id="exp">Export PDF</button><button id="sv">Save</button><button id="hs">History</button><button id="pf">Profile</button><button id="stb" class="pri">Start</button><button id="rst">New case</button><button class="zb" id="zo" aria-label="Zoom out">−</button><button class="zb" id="zf" aria-label="Fit to screen">Fit</button><button class="zb" id="zi" aria-label="Zoom in">+</button></div>
 <div id="scroller"><div id="sizer"><div id="wrap"></div></div></div>
 <div id="toast"></div>
 <script>/*!
@@ -2864,7 +2864,7 @@ function startStr(o){return["KC2",o.id,cl(o.student),cl(o.patient),cl(o.age),o.g
 function parseStart(t){var p=String(t).split("|");if(p[0]!=="KC2"||p.length!==10)return null;return{id:p[1],student:p[2],patient:p[3],age:p[4],gender:p[5],group:p[6],cli:p[7],bop:p[8],cc:p[9]?p[9].split(",").map(Number).filter(function(i){return CCL[i]}).map(function(i){return CCL[i]}):[]}}
 function parseCase(t){var p=String(t).split("|");if(p[0]!=="KC1"||p.length!==9)return null;return{id:p[1],student:p[2],patient:p[3],age:p[4],gender:p[5],group:p[6],cli:p[7],bop:p[8],str:t}}
 async function key(code,cs,doc,id){var m=await crypto.subtle.importKey("raw",te.encode(String(code).toUpperCase()+"|"+cs+"|"+doc),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt:te.encode(id),iterations:120000,hash:"SHA-256"},m,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
-function msg(cs,P,doc){return te.encode(cs+"|"+P.sc.join(",")+"|"+P.gr+"|"+P.fn+"|"+doc+(P.tk===undefined&&P.pn===undefined?"":"|"+P.tk+"|"+P.pn+"|"+P.lm))}
+function msg(cs,P,doc){return te.encode(cs+"|"+P.sc.join(",")+"|"+P.gr+"|"+P.fn+"|"+doc+(P.tk===undefined&&P.pn===undefined?"":"|"+P.tk+"|"+P.pn+"|"+P.lm)+(P.ex>0?"|x"+P.ex+"|a"+P.at:""))}
 async function seal(cs,id,doc,P,code,priv){
  P.sn=b64(new Uint8Array(await crypto.subtle.sign(SG,priv,msg(cs,P,doc))));
  var iv=crypto.getRandomValues(new Uint8Array(12)),ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},await key(code,cs,doc,id),te.encode(JSON.stringify(P)))),all=new Uint8Array(12+ct.length);
@@ -2877,7 +2877,29 @@ async function newKeys(){var k=await crypto.subtle.generateKey(EC,true,["sign","
 function importPriv(j){return crypto.subtle.importKey("jwk",j,EC,false,["sign"])}
 function sigEnc(strokes,W,H){var n=0;strokes.forEach(function(s){n+=s.length});var st=Math.max(1,Math.ceil(n/150));
  return strokes.map(function(s){var o="";s.forEach(function(p,i){if(i%st&&i!==s.length-1)return;o+=AL[Math.min(63,Math.round(p[0]/W*63))]+AL[Math.min(31,Math.round(p[1]/H*31))]});return o}).filter(Boolean).join("~")}
-function sigSvg(sg){if(!sg)return"";var d=sg.split("~").map(function(s){var p=[];for(var i=0;i<s.length;i+=2)p.push(AL.indexOf(s[i])+" "+AL.indexOf(s[i+1]));return"M"+p.join("L")+(p.length===1?"L"+p[0]:"")}).join("");
+function sigEnc2(st){return"2:"+st.map(function(s){var o="";s.forEach(function(p){var x=Math.max(0,Math.min(127,Math.round(p[0]))),y=Math.max(0,Math.min(63,Math.round(p[1])));o+=AL[x>>6]+AL[x&63]+AL[y]});return o}).filter(Boolean).join("~")}
+function sigEnc3(st){return"3:"+st.map(function(s){var o="";s.forEach(function(p){
+ var xi=Math.max(0,Math.min(511,Math.round(p[0]*4))),yi=Math.max(0,Math.min(255,Math.round(p[1]*4))),wi=Math.max(0,Math.min(31,Math.round((p[2]-.4)/.1))),n=xi*8192+yi*32+wi;
+ o+=AL[(n>>18)&63]+AL[(n>>12)&63]+AL[(n>>6)&63]+AL[n&63]});return o}).filter(Boolean).join("~")}
+function sigPts3(sg){return sg.slice(2).split("~").map(function(s){var p=[];for(var i=0;i+3<s.length;i+=4){var n=(AL.indexOf(s[i])<<18)|(AL.indexOf(s[i+1])<<12)|(AL.indexOf(s[i+2])<<6)|AL.indexOf(s[i+3]);p.push([(n>>13&511)/4,(n>>5&255)/4,(n&31)*.1+.4])}return p}).filter(function(p){return p.length})}
+/* centripetal Catmull-Rom through the points, widths interpolated */
+function sigCurve(p){if(p.length<3)return p;var o=[],n=p.length,i,j,k=6;
+ for(i=0;i<n-1;i++){var a=p[Math.max(0,i-1)],b=p[i],c=p[i+1],d=p[Math.min(n-1,i+2)],
+  t0=0,t1=t0+Math.pow(Math.hypot(b[0]-a[0],b[1]-a[1])||1e-3,.5),t2=t1+Math.pow(Math.hypot(c[0]-b[0],c[1]-b[1])||1e-3,.5),t3=t2+Math.pow(Math.hypot(d[0]-c[0],d[1]-c[1])||1e-3,.5);
+  for(j=0;j<k;j++){var t=t1+(t2-t1)*j/k,r=[0,0,b[2]+(c[2]-b[2])*j/k];
+   for(var m=0;m<2;m++){var A1=(t1-t)/(t1-t0)*a[m]+(t-t0)/(t1-t0)*b[m],A2=(t2-t)/(t2-t1)*b[m]+(t-t1)/(t2-t1)*c[m],A3=(t3-t)/(t3-t2)*c[m]+(t-t2)/(t3-t2)*d[m],
+    B1=(t2-t)/(t2-t0)*A1+(t-t0)/(t2-t0)*A2,B2=(t3-t)/(t3-t1)*A2+(t-t1)/(t3-t1)*A3;r[m]=(t2-t)/(t2-t1)*B1+(t-t1)/(t2-t1)*B2}
+   o.push(r)}}
+ o.push(p[n-1]);return o}
+function sigSvg3(sg){var G={},z=function(v){return Math.round(v*20)/20};
+ sigPts3(sg).forEach(function(s){var q=sigCurve(s);if(q.length===1)q=[q[0],[q[0][0]+.01,q[0][1],q[0][2]]];
+  for(var i=0;i<q.length-1;i++){var w=(q[i][2]+q[i+1][2])/2,lv=Math.max(0,Math.round((w-.4)/.2)),g=G[lv]=G[lv]||[],ls=g.length?g[g.length-1]:null,a=z(q[i][0])+" "+z(q[i][1]),b=z(q[i+1][0])+" "+z(q[i+1][1]);
+   if(ls&&ls.e===a&&ls.l===lv&&ls.s===s){ls.d+="L"+b;ls.e=b}else g.push({d:"M"+a+"L"+b,e:b,l:lv,s:s})}});
+ var h="";Object.keys(G).forEach(function(lv){h+='<path stroke-width="'+(lv*.2+.4).toFixed(1)+'" d="'+G[lv].map(function(x){return x.d}).join("")+'"/>'});
+ return'<svg xmlns="http://www.w3.org/2000/svg" width="340" height="180" viewBox="-3 -3 134 70"><g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round">'+h+'</g></svg>'}
+function sigSvg(sg){if(!sg)return"";if(sg.slice(0,2)==="3:")return sigSvg3(sg);
+ if(sg.slice(0,2)==="2:"){var d2=sg.slice(2).split("~").map(function(s){var p=[];for(var i=0;i+2<s.length;i+=3)p.push((AL.indexOf(s[i])*64+AL.indexOf(s[i+1]))+" "+AL.indexOf(s[i+2]));return p.length?"M"+p.join("L")+(p.length===1?"L"+p[0]:""):""}).join("");return'<svg xmlns="http://www.w3.org/2000/svg" width="340" height="180" viewBox="-3 -3 134 70"><path d="'+d2+'" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'}
+var d=sg.split("~").map(function(s){var p=[];for(var i=0;i<s.length;i+=2)p.push(AL.indexOf(s[i])+" "+AL.indexOf(s[i+1]));return"M"+p.join("L")+(p.length===1?"L"+p[0]:"")}).join("");
  return'<svg xmlns="http://www.w3.org/2000/svg" width="340" height="180" viewBox="-2 -2 68 36"><path d="'+d+'" fill="none" stroke="#000" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'}
 function sigPng(sg,cb){var i=new Image();i.onload=function(){var c=document.createElement("canvas");c.width=340;c.height=180;c.getContext("2d").drawImage(i,0,0,340,180);cb(c.toDataURL("image/png"))};i.onerror=function(){cb(null)};i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(sigSvg(sg))}
 function qrSvg(t,ec){qrcode.stringToBytes=function(s){return Array.from(te.encode(s))};var q=qrcode(0,ec||"M");q.addData(t,"Byte");q.make();var n=q.getModuleCount(),d="",r,c;
@@ -2921,7 +2943,7 @@ function scan(cb){var alive=true,stream=null,bd=window.BarcodeDetector?new Barco
  function loop(){if(!alive)return;if(v.videoWidth){var t=dec(v,v.videoWidth,v.videoHeight,false);if(t)return done(t)}setTimeout(loop,120)}
  function fail(e){st.textContent=(e&&e.name==="NotAllowedError"?"This page isn’t allowed to use the camera here. ":"Live camera isn’t available. ")+"Use “Take photo” below."}
  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(s){if(!alive){s.getTracks().forEach(function(t){t.stop()});return}stream=s;v.srcObject=s;v.play();st.textContent="Point the camera at the QR code.";loop()}).catch(fail);else fail()}
-return{CCL:CCL,startStr:startStr,parseStart:parseStart,b64:b64,unb64:unb64,rid:rid,rcode:rcode,caseStr:caseStr,parseCase:parseCase,seal:seal,parseScore:parseScore,verify:verify,open:open,fp:fp,newKeys:newKeys,importPriv:importPriv,sigEnc:sigEnc,sigSvg:sigSvg,sigPng:sigPng,qrSvg:qrSvg,modal:modal,scan:scan,calPick:calPick}
+return{CCL:CCL,startStr:startStr,parseStart:parseStart,b64:b64,unb64:unb64,rid:rid,rcode:rcode,caseStr:caseStr,parseCase:parseCase,seal:seal,parseScore:parseScore,verify:verify,open:open,fp:fp,newKeys:newKeys,importPriv:importPriv,sigEnc:sigEnc,sigSvg:sigSvg,sigPng:sigPng,qrSvg:qrSvg,modal:modal,scan:scan,calPick:calPick,sigEnc2:sigEnc2,sigEnc3:sigEnc3}
 })();
 var KL=(function(){
 var S0=function(){return{q:"",f:{},sort:"time",dir:-1,sel:{},mode:false,open:false,bundle:"",vis:[]}},STS={cases:S0(),folders:S0()},st=STS.cases,ctx,bar,list;
@@ -3096,14 +3118,15 @@ function p2(){
  '<table class="sc"><tr><th style="width:250px">Item</th><th colspan="2">Score</th></tr>'+
  [["Case sheet",10],["Motivation + instruction",10],["Indices (BOP + CLI)",20],["Diagnosis",20],["Evaluation",40]].map(function(r,i){return '<tr><td>'+r[0]+'</td><td class="o">Out of '+r[1]+'</td><td class="v2"><input dir="auto" data-t="s'+(i+1)+'"></td></tr>'}).join("")+
  '<tr><td>Calculus index total score</td><td class="x"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M0 0L10 10M10 0L0 10"/></svg></td><td class="v2" id="cs" style="text-align:center"></td></tr>'+
+ '<tr><td>Extra score ★</td><td class="x"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path vector-effect="non-scaling-stroke" d="M0 0L10 10M10 0L0 10"/></svg></td><td class="v2"><input dir="auto" data-t="s_ex"></td></tr>'+
  '<tr><td colspan="2" class="tt">Total Score</td><td class="v2"><input dir="auto" data-t="st"></td></tr></table></div>';
 }
 function p3(){
- return '<div class="page p3"><div class="p3box">Student name: '+tx("student",440)+'<br>Group: '+tx("group",440)+'<br>Date: '+tx("date",440)+'<br>Senior’s signature: '+tx("g_sig",380)+'</div>'+
+ return '<div class="page p3"><div class="p3box">Student name: '+tx("student",440)+'<br>Group: '+tx("group",440)+'<br>Date: '+tx("date",440)+'<br>Senior’s signature: <input dir="auto" data-t="g_sig" style="display:inline-block;vertical-align:middle;width:220px;height:110px;border:0;background:transparent">'+'</div>'+
  '<h2>Infection control and behavioral assessment</h2><h3>1. Infection control: (3 marks)</h3>'+
  '<p>Student must wear gloves, a mask, and safety glasses; a white coat or gown with his / her badge. Surfaces are covered with barriers when practical and are cleaned with disinfectant between patients and after finishing. All the instruments must be sterilized, and the dental chair must be prepared well.</p>'+
  '<h3 style="margin-top:34px">2. Behavior and attitude: (2 marks)</h3><p>Attended on time and behaved professionally with supervisors, staff, colleagues, and patients.</p>'+
- '<table class="gt"><tr><td rowspan="2" style="width:180px">Grade out of 5 marks</td><td rowspan="2" style="width:200px"><input data-t="g_grade"></td><td style="text-align:center;font-family:Calibri,Carlito,Arial,sans-serif;font-size:14px">Senior’s signature</td></tr><tr><td><input data-t="g_sig2"></td></tr></table>'+
+ '<table class="gt"><tr><td rowspan="2" style="width:180px">Grade out of 5 marks</td><td rowspan="2" style="width:200px"><input data-t="g_grade"></td><td style="text-align:center;font-family:Calibri,Carlito,Arial,sans-serif;font-size:14px">Senior’s signature</td></tr><tr><td><input data-t="g_sig2" style="display:block;width:200px;height:100px;border:0;margin:4px auto;background:transparent"></td></tr></table>'+
  '<h3 style="margin-top:44px;font-size:16px">Note:</h3><p>In case of failure to obtain a score <b>&gt; 3</b> marks, the final score of the case will be reduced by <b>50%</b> .</p></div>';
 }
 function chartHTML(){
@@ -3263,7 +3286,7 @@ function hRender(){
  var vis=KL.apply(all);
  vis.forEach(function(x){
   var r=x.rec,d=new Date(r.savedAt),p=function(n){return("0"+n).slice(-2)};
-  var meta=[x.student?"Student: "+x.student:"",x.group?"Group: "+x.group:"",r.date?"Case date: "+r.date:"",x.age===x.age?"Age "+x.age:"",r.bop?"BOP "+r.bop:"","Calculus "+x.cli.toFixed(1),x.score!=null?"Final "+x.score:"",(r.data&&r.data.started&&x.score==null)?"In progress":"",(r.data&&r.data.score&&r.data.score.P&&r.data.score.P.tk!=null)?"Time "+fmtT(r.data.score.P.tk)+(r.data.score.P.pn?" · penalty −"+r.data.score.P.pn:""):""].filter(Boolean).join(" · ");
+  var meta=[x.student?"Student: "+x.student:"",x.group?"Group: "+x.group:"",r.date?"Case date: "+r.date:"",x.age===x.age?"Age "+x.age:"",r.bop?"BOP "+r.bop:"","Calculus "+x.cli.toFixed(1),x.score!=null?"Final "+x.score+((r.data&&r.data.score&&r.data.score.P&&r.data.score.P.ex>0)?" ⭐ (+"+r.data.score.P.ex+")":"")+((r.data&&r.data.score&&r.data.score.doc)?" · Graded by Dr. "+r.data.score.doc:""):"",(r.data&&r.data.started&&x.score==null)?"In progress":"",(r.data&&r.data.score&&r.data.score.P&&r.data.score.P.tk!=null)?"Time "+fmtT(r.data.score.P.tk)+(r.data.score.P.pn?" · penalty −"+r.data.score.P.pn:""):""].filter(Boolean).join(" · ");
   h+='<div class="hc'+(r.id===CUR?" cur":"")+'">'+KL.chk(r.id)+'<div class="ht" dir="auto">'+hEsc(r.name||"(no name)")+(r.id===CUR?' <span style="font-weight:400;color:#0f766e;font-size:12px">· open now</span>':"")+'</div><div class="hm" dir="auto">'+hEsc(meta)+'</div><div class="hm">Saved '+p(d.getDate())+"/"+p(d.getMonth()+1)+"/"+d.getFullYear()+" "+(d.getHours()%12||12)+":"+p(d.getMinutes())+" "+(d.getHours()<12?"AM":"PM")+'</div><div class="ha"><button class="go" data-id="'+hEsc(r.id)+'">Open</button><button class="del" data-id="'+hEsc(r.id)+'">Delete</button></div></div>';
  });
  $("#hl").innerHTML=h||'<div class="hemp">'+(all.length?"No matching cases.":"No saved cases yet.<br>Fill in a case and tap Save.")+'</div>';
@@ -3330,8 +3353,10 @@ function pfLoad(){try{var r=localStorage.getItem(PK);return r?JSON.parse(r):PM}c
 var PF=pfLoad();
 function pfOpen(force){
  var inp='display:block;width:100%;margin-top:8px;padding:9px;border:1px solid #bbb;border-radius:8px;font:inherit;font-size:16px;box-sizing:border-box';
- var m=KC.modal('<b>'+(force?"Welcome! Enter your details":"My details")+'</b><div style="font-size:13px;color:#555;margin:4px 0">'+(force?"Required once. ":"")+'Saved on this device. New cases start with this name and group (one English letter). You can still change them on any case.</div><input id="pfn" dir="auto" placeholder="Your name" value="'+hEsc(PF.name)+'" style="'+inp+'"><input id="pfg" dir="auto" placeholder="Your group (one letter, A–Z)" maxlength="1" autocapitalize="characters" value="'+hEsc(PF.group)+'" style="'+inp+'"><div id="pfe" style="color:#b91c1c;font-size:13px;min-height:18px;margin-top:6px"></div><button id="pfs" style="width:100%;margin-top:4px;border:0;background:#0f766e;color:#fff;border-radius:8px;padding:10px;font:inherit;font-weight:700;cursor:pointer">Save</button>');
+ var m=KC.modal('<b>'+(force?"Welcome! Enter your details":"My details")+'</b><div style="font-size:13px;color:#555;margin:4px 0">'+(force?"Required once. ":"")+'Saved on this device. New cases start with this name and group (one English letter). You can still change them on any case.</div><input id="pfn" dir="auto" placeholder="Your name" value="'+hEsc(PF.name)+'" style="'+inp+'"><input id="pfg" dir="auto" placeholder="Your group (one letter, A–Z)" maxlength="1" autocapitalize="characters" value="'+hEsc(PF.group)+'" style="'+inp+'"><div id="pfe" style="color:#b91c1c;font-size:13px;min-height:18px;margin-top:6px"></div><button id="pfs" style="width:100%;margin-top:4px;border:0;background:#0f766e;color:#fff;border-radius:8px;padding:10px;font:inherit;font-weight:700;cursor:pointer">Save</button><label style="display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px"><input type="checkbox" id="pft" style="width:20px;height:20px;margin:0;flex:none"> Show the countdown timer while I work</label><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:#777"><span>Version '+APP_VER+'</span><button id="pfu" style="border:1px solid #bbb;background:#fff;color:#111;border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer">Check for updates</button></div>');
  if(force){var x=m.el.querySelector("[data-x]");if(x)x.style.display="none"}
+ var pft=m.el.querySelector("#pft");pft.checked=localStorage.getItem("perio_timer_hide")!=="1";pft.onchange=function(){try{localStorage.setItem("perio_timer_hide",pft.checked?"0":"1")}catch(e){}timerChip()};
+ m.el.querySelector("#pfu").onclick=function(){chkUpd(true)};
  function put(p){PM=p;PF=p;try{localStorage.setItem(PK,JSON.stringify(p))}catch(e){}}
  m.el.querySelector("#pfs").onclick=function(){
   var n=m.el.querySelector("#pfn").value.trim(),g=m.el.querySelector("#pfg").value.trim();
@@ -3341,7 +3366,7 @@ function pfOpen(force){
   if(!LOCKED)[["student",n],["group",g]].forEach(function(x){if(x[1]&&!(S.t[x[0]]||"").trim()){S.t[x[0]]=x[1];$$('[data-t="'+x[0]+'"]').forEach(function(e){e.value=x[1]})}});
   m.close();toast("Saved.")};
 }
-var LOCKED=false,TRUSTED=[],SK=["s1","s2","s3","s4","s5","st","g_grade","g_sig","g_sig2"];
+var LOCKED=false,TRUSTED=[],SK=["s1","s2","s3","s4","s5","s_ex","st","g_grade","g_sig","g_sig2"];
 function caseStr(){if(!S.cid)S.cid=KC.rid();return KC.caseStr({id:S.cid,student:S.t.student,patient:S.t.pname,age:S.t.age,gender:S.gender,group:S.t.group,cli:(sums().tot/12*50).toFixed(1),bop:($("#bopv").textContent||"").replace("%","")})}
 function setF(k,v){var e=$('[data-t="'+k+'"]');if(e){e.value=v;S.t[k]=v}}
 async function applyScore(){
@@ -3353,8 +3378,8 @@ async function applyScore(){
  $$('[data-t="group"]').forEach(function(e){e.maxLength=1;e.setAttribute("autocapitalize","characters");e.style.textTransform="uppercase"});
  var P=LOCKED?S.score.P:null;
  ["s1","s2","s3","s4","s5"].forEach(function(k,i){setF(k,P?String(P.sc[i]):"")});
- setF("st",P?String(P.fn):"");setF("g_grade",P?String(P.gr):"");
- if(P)KC.sigPng(P.sg,function(u){if(u)["g_sig","g_sig2"].forEach(function(k){var e=$('[data-t="'+k+'"]');if(e){e.style.background="url("+u+") no-repeat left center/contain";e.style.height="40px"}})});
+ setF("st",P?String(P.fn):"");setF("s_ex",P&&P.ex>0?String(P.ex):"");setF("g_grade",P?String(P.gr):"");
+ if(P)KC.sigPng(P.sg,function(u){if(u)["g_sig","g_sig2"].forEach(function(k){var e=$('[data-t="'+k+'"]');if(e){e.style.background="url("+u+") no-repeat center/contain"}})});
 }
 function caseQR(){
  var tv=function(k){return(S.t[k]||"").trim()};
@@ -3375,13 +3400,14 @@ function scoreFlow(){
    var P=await KC.open(caseStr(),sc,code);
    if(P&&TRUSTED.length&&TRUSTED.indexOf(await KC.fp(P.pk))<0)P=null,er.textContent="This supervisor isn’t recognised.";
    if(!P){if(!er.textContent)er.textContent="Wrong code, or the BOP/calculus values on your sheet differ from what the doctor graded. Show the doctor your QR (QR button) so they can scan the exact values.";b.disabled=false;b.textContent="Apply score";return}
+   if(S.score&&S.score.P){var oa=S.score.P.at||0,na=P.at||Date.now();if(na<oa){m.close();toast("A newer grade from Dr. "+S.score.doc+" is already on your sheet, so this older one was ignored.");return}}
    S.score={doc:sc.doc,P:P,at:Date.now()};m.close();build();doSave();toast("Score from Dr. "+sc.doc+" applied and case saved.");
   };
  });
 }
 document.addEventListener("click",function(e){
  if((LOCKED||S.started)&&e.target.closest('.cb[data-k="gender"],.cb[data-m],.th i,.nums b,.pm')){e.stopImmediatePropagation();toast(LOCKED?"Locked: this case has been scored.":"Locked: the exam has started.");return}
- if(e.target.closest("#qr"))caseQR();else if(e.target.closest("#scs"))scoreFlow();else if(e.target.closest("#pf"))pfOpen();else if(e.target.closest("#stb"))startFlow();
+ if(e.target.closest("#scs"))scoreFlow();else if(e.target.closest("#pf"))pfOpen();else if(e.target.closest("#stb"))startFlow();
 },true);
 
 var BK="perio_bundles_v1",BM=[];
@@ -3424,6 +3450,51 @@ function startFlow(){
   if(!armed){armed=true;b.textContent="Press again to confirm";b.style.background="#b91c1c";b.style.borderColor="#b91c1c";tm=setTimeout(function(){armed=false;b.textContent="Confirm and start";b.style.background="#0f766e";b.style.borderColor="#0f766e"},5000);return}
   clearTimeout(tm);m.close();S.started=true;S.startedAt=Date.now();startQRStr();doSave();build();showStartQR()};
 }
+
+/* ===== version + update check ===== */
+var APP_VER="1.0.14",APP_REPO="perio-case-sheet-student";
+function uEsc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function vnum(v){return String(v||"").replace(/^[^\d]*/,"").split(/[.\-+]/).slice(0,4).map(function(x){return parseInt(x,10)||0})}
+function vNewer(a,b){var x=vnum(a),y=vnum(b);for(var i=0;i<4;i++){var p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
+function osKind(){var u=navigator.userAgent||"";if(/Android/i.test(u))return"android";if(/iPhone|iPad|iPod/i.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1))return"ios";if(/Windows/i.test(u))return"windows";return"other"}
+async function chkUpd(manual){
+ if(!navigator.onLine){if(manual)toast("No internet connection.");return}
+ var j;
+ try{var ctl=new AbortController(),to=setTimeout(function(){ctl.abort()},9000);var r=await fetch("https://api.github.com/repos/UOK-dentistry-college/"+APP_REPO+"/releases/latest",{headers:{Accept:"application/vnd.github+json"},signal:ctl.signal,cache:"no-store"});clearTimeout(to);if(!r.ok)throw 0;j=await r.json()}
+ catch(e){if(manual)toast("Couldn’t check for updates. Try again later.");return}
+ try{localStorage.setItem("upd_last",String(Date.now()))}catch(e){}
+ var tag=j.tag_name||j.name||"";
+ if(!vNewer(tag,APP_VER)){if(manual)toast("You have the latest version ("+APP_VER+").");return}
+ if(!manual){try{var sk=(localStorage.getItem("upd_skip")||"").split("|");if(sk[0]===tag&&Date.now()-(+sk[1]||0)<864e5)return}catch(e){}}
+ updModal(j,tag);
+}
+function updModal(j,tag){
+ var os=osKind(),as=j.assets||[],pick=function(re){return as.filter(function(a){return re.test(a.name)})},ver=uEsc(String(tag).replace(/^v/i,""));
+ var LB='display:block;text-align:center;padding:11px;border-radius:8px;font-weight:700;text-decoration:none;margin-top:8px;',L1=LB+'background:#0f766e;color:#fff;',L2=LB+'background:#fff;color:#0f766e;border:2px solid #0f766e;';
+ var h='<b>New version available</b><div style="margin:6px 0 4px;font-size:14px">You have <b>'+uEsc(APP_VER)+'</b>. The latest is <b>'+ver+'</b>.</div>';
+ var link=function(u,t,st){return'<a href="'+uEsc(u)+'" target="_blank" rel="noopener" style="'+st+'">'+t+'</a>'};
+ if(os==="android"){var ap=pick(/\.apk$/i)[0];h+=ap?link(ap.browser_download_url,"Download the update (APK)",L1)+'<div style="font-size:12px;color:#666;margin-top:6px">Open the downloaded file to install it over the old one.</div>':link(j.html_url,"Open the release page",L1)}
+ else if(os==="windows"){var ex=pick(/\.exe$/i)[0],zp=pick(/\.zip$/i)[0];if(ex)h+=link(ex.browser_download_url,"Download the installer (.exe)",L1);if(zp)h+=link(zp.browser_download_url,"Download the ZIP",ex?L2:L1);if(!ex&&!zp)h+=link(j.html_url,"Open the release page",L1)}
+ else if(os==="ios"){h+='<div style="margin:8px 0;padding:10px;border-radius:8px;background:#fffbeb;border:1px solid #f59e0b;font-size:14px">The new version downloads by itself. <b>Close the app completely and open it again, a few times</b>, until this message stops appearing.</div>'}
+ else h+=link(j.html_url,"Open the release page",L1);
+ var m=KC.modal(h+'<div style="margin-top:8px"><button data-later style="border:1px solid #bbb;background:#fff;color:#111;border-radius:8px;padding:8px 16px;font:inherit;cursor:pointer">Remind me later</button></div>');
+ m.el.querySelector("[data-later]").onclick=function(){try{localStorage.setItem("upd_skip",tag+"|"+Date.now())}catch(e){}m.close()};
+}
+setTimeout(function(){var l=0;try{l=+localStorage.getItem("upd_last")||0}catch(e){}if(Date.now()-l>216e5)chkUpd(false)},4000);
+
+/* ===== countdown timer (student) ===== */
+var TSESS=[[10,30,"10:30 AM"],[12,30,"12:30 PM"],[14,30,"2:30 PM"]],TCHIP=null;
+function tEnd(ts){for(var i=0;i<TSESS.length;i++){var d=new Date(ts);d.setHours(TSESS[i][0],TSESS[i][1],0,0);if(d.getTime()-ts>=60000)return{t:d.getTime(),l:TSESS[i][2]}}return null}
+function tFmt(ms){var s=Math.floor(Math.abs(ms)/1000),p=function(n){return("0"+n).slice(-2)};return Math.floor(s/3600)+":"+p(Math.floor(s%3600/60))+":"+p(s%60)}
+function timerChip(){
+ var hide=false;try{hide=localStorage.getItem("perio_timer_hide")==="1"}catch(e){}
+ var end=(S&&S.started&&!LOCKED&&!hide)?tEnd(S.startedAt||Date.now()):null;
+ if(!end){if(TCHIP){TCHIP.remove();TCHIP=null}return}
+ if(!TCHIP){TCHIP=document.createElement("div");TCHIP.style.cssText="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:50;color:#fff;border-radius:20px;padding:6px 8px 6px 14px;font:700 16px Calibri,Carlito,Arial,sans-serif;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.35);white-space:nowrap";TCHIP.innerHTML='<span data-tc></span><button aria-label="Hide timer" style="border:0;background:rgba(255,255,255,.25);color:#fff;border-radius:50%;width:26px;height:26px;font:inherit;cursor:pointer;line-height:1">×</button>';document.body.appendChild(TCHIP);TCHIP.querySelector("button").onclick=function(){try{localStorage.setItem("perio_timer_hide","1")}catch(e){}timerChip();toast("Timer hidden. You can show it again in Profile.")}}
+ var left=end.t-Date.now();TCHIP.firstChild.textContent=left>0?"⏱ "+tFmt(left)+" · until "+end.l:"⏱ Time is up ("+end.l+")";
+ TCHIP.style.background=left<=0?"#b91c1c":left<600000?"#b45309":"#0f766e"}
+setInterval(timerChip,1000);
+
 S=fresh();build();if(!PF.name||!PF.group)setTimeout(function(){pfOpen(true)},0);
 })();
 </script>

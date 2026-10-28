@@ -34,8 +34,8 @@ or
 
 1. **Set your name and group** once. They are saved on the device and pre-filled for every new case.
 2. **Fill the case sheet** (patient details, chief complaint, medical history, habits, examination, BOP chart, bone loss, diagnosis, calculus index, infection control and behavior). Required fields are checked before you can continue.
-3. **Show the Start QR** to your supervisor. They scan it with the Supervisor app and start the timer.
-4. When the supervisor finishes grading, they show you a **score QR**. Tap **Scan score**, check it, then **Apply score**.
+3. **Show the Start QR** to your supervisor. They scan it with the Supervisor app and start the timer. A small **countdown timer** also appears on your screen, counting down to the next session time (10:30 AM, 12:30 PM or 2:30 PM). Tap **×** to hide it, or turn it on/off in **Profile**.
+4. When the supervisor finishes grading, they show you a **score QR**. Tap **Scan score**, check it, then **Apply score**. If the doctor gave an **extra score** (⭐), it appears in its own row and is added to your total. If two doctors graded the same case, only the **latest** grade counts.
 5. The app **verifies the doctor's signature**. A score that was changed, or that belongs to another case, is rejected.
 6. **Save** the case. It appears in your history.
 
@@ -47,6 +47,13 @@ or
 - **Backup** saves your cases to a file; **Import** restores it. Make a backup regularly. Your data lives only on your phone.
 
 ---
+
+## Updates
+
+The app shows its **version** (Profile) and checks GitHub for a newer release when it opens and you are online, or when you tap **Check for updates**.
+- **Android app:** a button downloads the latest **APK**.
+- **Windows app:** choose the **installer (.exe)** or the **ZIP**.
+- **iPhone / iPad (home-screen app):** close the app completely and open it again a few times until the new version loads.
 
 ## Privacy and responsibility
 
