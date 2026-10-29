@@ -35,7 +35,7 @@ html,body,#scroller,#sizer,#wrap,.page{-webkit-text-size-adjust:none;text-size-a
 .page{white-space:nowrap}
 .p3 p{white-space:normal}
 .ta{display:block;white-space:pre-wrap}
-.noexp{border:1px solid #000;background:#fff;color:#000;border-radius:6px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}.bar{flex-wrap:wrap!important;overflow:visible!important}.bar{flex-wrap:nowrap;gap:6px;padding:8px 6px}
+.noexp.on{background:#0f766e;color:#fff;border-color:#0f766e}.noexp{border:1px solid #000;background:#fff;color:#000;border-radius:6px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer}.bar{flex-wrap:wrap!important;overflow:visible!important}.bar{flex-wrap:nowrap;gap:6px;padding:8px 6px}
 .bar button{padding:8px 11px;font-size:13px;white-space:nowrap}
 .bar button.zb{padding:8px 10px;font-weight:700;min-width:36px}
 .cb::before{content:"";position:absolute;inset:-8px}
@@ -3107,7 +3107,7 @@ function p1(){
  '<div class="box" style="padding:12px 16px 14px">SPECIAL TESTS &amp; RESULTS:<textarea class="ta" dir="auto" data-t="special"></textarea></div></div>';
 }
 function p2(){
- return '<div class="page"><div>BOP (%): <span class="bop" id="bopv">&nbsp;</span></div><div class="chart" id="chart"></div>'+
+ return '<div class="page"><div>BOP (%): <span class="bop" id="bopv">&nbsp;</span> <button class="noexp" id="b100" type="button" style="margin-left:6px">100%</button></div><div class="chart" id="chart"></div>'+
  '<div class="q2"><b>Any interproximal bone loss?</b> '+yn("bone")+' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>Reduced periodontium?</b> '+yn("rp")+'</div>'+
  '<div class="q2" style="margin-top:4px"><b>DIAGNOSIS:</b></div>'+
  '<div class="q2" style="margin:0">Healthy '+dv("healthy")+'; intact '+cb("hr","intact")+', reduced '+cb("hr","reduced")+'</div>'+
@@ -3152,9 +3152,10 @@ function render(){
  var b=0,rec=true,m=0,n,i;
  for(n in S.miss)if(S.miss[n])m++;
  for(n in S.sites)if(!S.miss[n])S.sites[n].forEach(function(v){if(v!=="")rec=true;if(v==="1")b++});
- var pr=28-m,p=(rec&&pr>0)?b/(pr*6)*100:null;
+ var pr=28-m,p=(rec&&pr>0)?b/(pr*6)*100:null;if(S.b100)p=100;
  D={healthy:p!==null&&p<10,ging:p!==null&&p>=10,loc:p!==null&&p>=10&&p<=30,gen:p!==null&&p>30};
  $("#bopv").textContent=p===null?"":p.toFixed(1)+"%";
+ var bb=$("#b100");if(bb)bb.classList.toggle("on",!!S.b100);
  $("#chart").innerHTML=chartHTML();$("#cal").innerHTML=calHTML();
  $("#cs").textContent=(sums().tot/12*50).toFixed(1);
  $$(".cb").forEach(function(e){
@@ -3406,8 +3407,8 @@ function scoreFlow(){
  });
 }
 document.addEventListener("click",function(e){
- if((LOCKED||S.started)&&e.target.closest('.cb[data-k="gender"],.cb[data-m],.th i,.nums b,.pm')){e.stopImmediatePropagation();toast(LOCKED?"Locked: this case has been scored.":"Locked: the exam has started.");return}
- if(e.target.closest("#scs"))scoreFlow();else if(e.target.closest("#pf"))pfOpen();else if(e.target.closest("#stb"))startFlow();
+ if((LOCKED||S.started)&&e.target.closest('.cb[data-k="gender"],.cb[data-m],.th i,.nums b,.pm,#b100')){e.stopImmediatePropagation();toast(LOCKED?"Locked: this case has been scored.":"Locked: the exam has started.");return}
+ if(e.target.closest("#scs"))scoreFlow();else if(e.target.closest("#pf"))pfOpen();else if(e.target.closest("#stb"))startFlow();else if(e.target.closest("#b100")){S.b100=!S.b100;render()}
 },true);
 
 var BK="perio_bundles_v1",BM=[];
@@ -3452,7 +3453,7 @@ function startFlow(){
 }
 
 /* ===== version + update check ===== */
-var APP_VER="1.0.14",APP_REPO="perio-case-sheet-student";
+var APP_VER="1.0.15",APP_REPO="perio-case-sheet-student";
 function uEsc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function vnum(v){return String(v||"").replace(/^[^\d]*/,"").split(/[.\-+]/).slice(0,4).map(function(x){return parseInt(x,10)||0})}
 function vNewer(a,b){var x=vnum(a),y=vnum(b);for(var i=0;i<4;i++){var p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}

@@ -1,6 +1,6 @@
 /* Offline support for Perio Case Sheet – Student.
    Bump VERSION whenever you upload a new index.html so phones refresh their cached copy. */
-const VERSION = 'v1.0.14';
+const VERSION = 'v1.0.15';
 const CACHE = 'perio-student-' + VERSION;
 const ASSETS = [
   './',
