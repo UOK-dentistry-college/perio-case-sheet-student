@@ -22,11 +22,11 @@ A digital version of the **periodontal case sheet** used by 4th-year students at
 2. Tap the menu **⋮** → **Install app** (or **Add to Home screen**).
 or
 **Android (the app)**
-1. Go to [`realeses`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the lataest APK version.
+1. Go to [`releases`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the lataest APK version.
 2. after the download is completed open the APK file and install it.
 
 **Computer (the app)**
-1. Go to [`realeses`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the lataest EXE version.
+1. Go to [`releases`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the latest EXE version.
 2. after the download is completed open the EXE file and install it.
 ---
 
