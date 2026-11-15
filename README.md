@@ -22,11 +22,11 @@ A digital version of the **periodontal case sheet** used by 4th-year students at
 2. Tap the menu **⋮** → **Install app** (or **Add to Home screen**).
 or
 **Android (the app)**
-1. Go to [`releases`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the lataest APK version.
+1. Go to [`realeses`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the lataest APK version.
 2. after the download is completed open the APK file and install it.
 
 **Computer (the app)**
-1. Go to [`releases`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the latest EXE version.
+1. Go to [`realeses`](https://github.com/UOK-dentistry-college/perio-case-sheet-student/releases), and download the lataest EXE version.
 2. after the download is completed open the EXE file and install it.
 ---
 
@@ -34,10 +34,15 @@ or
 
 1. **Set your name and group** once. They are saved on the device and pre-filled for every new case.
 2. **Fill the case sheet** (patient details, chief complaint, medical history, habits, examination, BOP chart, bone loss, diagnosis, calculus index, infection control and behavior). Required fields are checked before you can continue.
-3. **Show the Start QR** to your supervisor. They scan it with the Supervisor app and start the timer. A small **countdown timer** also appears on your screen, counting down to the next session time (10:30 AM, 12:30 PM or 2:30 PM). Tap **×** to hide it, or turn it on/off in **Profile**.
+3. **Show the Start QR** to your supervisor. They scan it with the Supervisor app and start the timer. A small **countdown timer** also appears on your screen. By default it counts down to the next session time (10:30 AM, 12:30 PM or 2:30 PM), or to **your own end time** if you set one in **Profile → Timer ending time**. It turns **yellow** and then **red** as time runs out (30 and 10 minutes left by default; change them in Profile → Timer colours). Tap **×** to hide it and the **⏱ button** above the zoom buttons to show it again. If you change the end time while a case is running, the timer updates straight away.
 4. When the supervisor finishes grading, they show you a **score QR**. Tap **Scan score**, check it, then **Apply score**. If the doctor gave an **extra score** (⭐), it appears in its own row and is added to your total. If two doctors graded the same case, only the **latest** grade counts.
 5. The app **verifies the doctor's signature**. A score that was changed, or that belongs to another case, is rejected.
 6. **Save** the case. It appears in your history.
+
+## Changing your group
+
+Change your group in **Profile**. All your saved cases switch to the new group, and you are reminded to update your timer end time.
+If you already have a **graded case**, a doctor has to verify the change: open **Profile → Verify group change** and show the QR to the doctor. A doctor who knows your old group will ask to reject the case or confirm the change when they scan your next Start QR.
 
 ## History, bundles and backup
 

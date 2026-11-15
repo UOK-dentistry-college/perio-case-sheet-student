@@ -45,6 +45,8 @@ html,body,#scroller,#sizer,#wrap,.page{-webkit-text-size-adjust:none;text-size-a
 #zi{bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 #zf{bottom:calc(50px + env(safe-area-inset-bottom,0px))}
 #zo{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+#tmr{bottom:calc(126px + env(safe-area-inset-bottom,0px))}
+.bar button.zb.tmon{background:#0f766e;color:#fff;opacity:.9}
 #hov{position:fixed;inset:0;z-index:40;background:#f4f4f0;color:#111;display:none;flex-direction:column;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);font-family:Calibri,Carlito,Arial,sans-serif}
 #hov.on{display:flex}
 #hov button{border:1px solid #bbb;border-radius:8px;padding:9px 14px;font:inherit;font-size:calc(14px / var(--fz,1));cursor:pointer;background:#fff;color:#111}
@@ -198,7 +200,7 @@ window.addEventListener("resize",run);window.addEventListener("focus",run);windo
 try{document.fonts&&document.fonts.ready.then(run)}catch(e){}
 (function obs(){var w=document.getElementById("wrap");if(!w){setTimeout(obs,150);return}new MutationObserver(run).observe(w,{childList:true,subtree:true});run()})();
 })();</script>
-<div class="bar"><button class="pri" id="exp">Export PDF</button><button id="sv">Save</button><button id="hs">History</button><button id="pf">Profile</button><button id="stb" class="pri">Start</button><button id="rst">New case</button><button class="zb" id="zo" aria-label="Zoom out">−</button><button class="zb" id="zf" aria-label="Fit to screen">Fit</button><button class="zb" id="zi" aria-label="Zoom in">+</button></div>
+<div class="bar"><button class="pri" id="exp">Export PDF</button><button id="sv">Save</button><button id="hs">History</button><button id="pf">Profile</button><button id="stb" class="pri">Start</button><button id="rst">New case</button><button class="zb" id="zo" aria-label="Zoom out">−</button><button class="zb" id="zf" aria-label="Fit to screen">Fit</button><button class="zb" id="zi" aria-label="Zoom in">+</button><button class="zb" id="tmr" aria-label="Show or hide the timer" title="Show or hide the timer">⏱</button></div>
 <div id="scroller"><div id="sizer"><div id="wrap"></div></div></div>
 <div id="toast"></div>
 <script>/*!
@@ -2931,6 +2933,8 @@ function caseStr(o){return["KC1",o.id,cl(o.student),cl(o.patient),cl(o.age),o.ge
 var CCL=["Bleeding","Halitosis","Dry mouth","Altered gingival appearance","Referral","Hypersensitivity","Mobility","Migration of teeth","Esthetic","Scaling","check up"];
 function startStr(o){return["KC2",o.id,cl(o.student),cl(o.patient),cl(o.age),o.gender||"",cl(o.group),o.cli,o.bop,(o.cc||[]).join(",")].join("|")}
 function parseStart(t){var p=String(t).split("|");if(p[0]!=="KC2"||p.length!==10)return null;return{id:p[1],student:p[2],patient:p[3],age:p[4],gender:p[5],group:p[6],cli:p[7],bop:p[8],cc:p[9]?p[9].split(",").map(Number).filter(function(i){return CCL[i]}).map(function(i){return CCL[i]}):[]}}
+function groupStr(o){return["KG1",o.id,cl(o.student),o.from,o.to,o.at].join("|")}
+function parseGroup(t){var p=String(t).split("|");if(p[0]!=="KG1"||p.length!==6)return null;if(!/^[A-Z]$/.test(p[3])||!/^[A-Z]$/.test(p[4])||p[3]===p[4]||!p[1]||!p[2].trim())return null;var at=parseInt(p[5],10);if(!(at>0))return null;return{id:p[1],student:p[2].trim(),from:p[3],to:p[4],at:at}}
 function parseCase(t){var p=String(t).split("|");if(p[0]!=="KC1"||p.length!==9)return null;return{id:p[1],student:p[2],patient:p[3],age:p[4],gender:p[5],group:p[6],cli:p[7],bop:p[8],str:t}}
 async function key(code,cs,doc,id){var m=await crypto.subtle.importKey("raw",te.encode(String(code).toUpperCase()+"|"+cs+"|"+doc),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt:te.encode(id),iterations:120000,hash:"SHA-256"},m,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
 function msg(cs,P,doc){return te.encode(cs+"|"+P.sc.join(",")+"|"+P.gr+"|"+P.fn+"|"+doc+(P.tk===undefined&&P.pn===undefined?"":"|"+P.tk+"|"+P.pn+"|"+P.lm)+(P.ex>0?"|x"+P.ex+"|a"+P.at:""))}
@@ -3012,7 +3016,7 @@ function scan(cb){var alive=true,stream=null,bd=window.BarcodeDetector?new Barco
  function loop(){if(!alive)return;if(v.videoWidth){var t=dec(v,v.videoWidth,v.videoHeight,false);if(t)return done(t)}setTimeout(loop,120)}
  function fail(e){st.textContent=(e&&e.name==="NotAllowedError"?"This page isn’t allowed to use the camera here. ":"Live camera isn’t available. ")+"Use “Take photo” below."}
  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}}).then(function(s){if(!alive){s.getTracks().forEach(function(t){t.stop()});return}stream=s;v.srcObject=s;v.play();st.textContent="Point the camera at the QR code.";loop()}).catch(fail);else fail()}
-return{CCL:CCL,startStr:startStr,parseStart:parseStart,b64:b64,unb64:unb64,rid:rid,rcode:rcode,caseStr:caseStr,parseCase:parseCase,seal:seal,parseScore:parseScore,verify:verify,open:open,fp:fp,newKeys:newKeys,importPriv:importPriv,sigEnc:sigEnc,sigSvg:sigSvg,sigPng:sigPng,qrSvg:qrSvg,modal:modal,scan:scan,calPick:calPick,sigEnc2:sigEnc2,sigEnc3:sigEnc3}
+return{CCL:CCL,startStr:startStr,parseStart:parseStart,b64:b64,unb64:unb64,rid:rid,rcode:rcode,caseStr:caseStr,groupStr:groupStr,parseGroup:parseGroup,parseCase:parseCase,seal:seal,parseScore:parseScore,verify:verify,open:open,fp:fp,newKeys:newKeys,importPriv:importPriv,sigEnc:sigEnc,sigSvg:sigSvg,sigPng:sigPng,qrSvg:qrSvg,modal:modal,scan:scan,calPick:calPick,sigEnc2:sigEnc2,sigEnc3:sigEnc3}
 })();
 var KL=(function(){
 var S0=function(){return{q:"",f:{},sort:"time",dir:-1,sel:{},mode:false,open:false,bundle:"",vis:[]}},STS={cases:S0(),folders:S0()},st=STS.cases,ctx,bar,list;
@@ -3427,14 +3431,15 @@ async function shareBack(id){
  if(!sc||!sc.P||!d.cid){toast("Only graded cases can be shared back to the doctor.");return}
  var t=d.t||{};
  var cs=KC.caseStr({id:d.cid,student:toEn(t.student),patient:toEn(t.pname),age:toEn(t.age),gender:d.gender,group:toEn(t.group),cli:calOf(d).s,bop:String(r.bop||"").replace("%","")}),ok=false;
- try{ok=await KC.verify(cs,sc.doc,sc.P)}catch(e){}
+ var gl=[sc.g,toEn(t.group)].concat(d.gh||[]).filter(function(x,i,a){return x&&a.indexOf(x)===i});
+ for(var gi=0;gi<gl.length&&!ok;gi++){cs=KC.caseStr({id:d.cid,student:toEn(t.student),patient:toEn(t.pname),age:toEn(t.age),gender:d.gender,group:gl[gi],cli:calOf(d).s,bop:String(r.bop||"").replace("%","")});try{ok=await KC.verify(cs,sc.doc,sc.P)}catch(e){}}
  if(!ok){toast("This case can’t be shared back: its data no longer matches the signed score.");return}
  var cc=KC.CCL.map(function(l,i){return d.cc&&d.cc[l]?i:-1}).filter(function(i){return i>=0}),svg,str="KR1~"+KC.b64(new TextEncoder().encode(JSON.stringify({c:cs,d:sc.doc,P:sc.P,cc:cc})));
  try{svg=KC.qrSvg(str,"L")}catch(e){toast("Couldn’t build the QR code.");return}
  KC.modal('<b>Share graded case</b><div style="max-width:320px;margin:8px auto">'+svg+'</div><div style="font-size:calc(13px / var(--fz,1));color:#444;text-align:center" dir="auto">'+hEsc(t.pname||"")+' · Final '+hEsc(sc.P.fn)+' · Dr. '+hEsc(sc.doc)+'</div><div style="font-size:calc(12px / var(--fz,1));color:#777;text-align:center;margin-top:6px">Only Dr. '+hEsc(sc.doc)+' can accept this, to restore a case that was deleted by mistake. Another doctor’s app will reject it. The doctor scans it with Scan student QR.</div>');
 }
-function hOpen(){hRender();ov.classList.add("on")}
-function hClose(){ov.classList.remove("on")}
+function hOpen(){hRender();ov.classList.add("on");timerChip()}
+function hClose(){ov.classList.remove("on");timerChip()}
 function doSave(){
  var nm=(S.t.pname||"").trim();
  if(!nm){var e=$('[data-t="pname"]');if(e){e.classList.add("bad");e.scrollIntoView({block:"center"})}toast("Enter the patient’s name before saving.");return}
@@ -3494,26 +3499,28 @@ function pfLoad(){try{var r=localStorage.getItem(PK);return r?JSON.parse(r):PM}c
 var PF=pfLoad();
 function pfOpen(force){
  var inp='display:block;width:100%;margin-top:8px;padding:9px;border:1px solid #bbb;border-radius:8px;font:inherit;font-size:calc(16px / var(--fz,1));box-sizing:border-box';
- var m=KC.modal('<b>'+(force?"Welcome! Enter your details":"My details")+'</b><div style="font-size:calc(13px / var(--fz,1));color:#555;margin:4px 0">'+(force?"Required once. ":"")+'Saved on this device. New cases start with this name and group (one English letter). You can still change them on any case.</div><input id="pfn" dir="auto" placeholder="Your name" value="'+hEsc(PF.name)+'" style="'+inp+'"><input id="pfg" dir="auto" placeholder="Your group (one letter, A–Z)" maxlength="1" autocapitalize="characters" value="'+hEsc(PF.group)+'" style="'+inp+'"><div id="pfe" style="color:#b91c1c;font-size:calc(13px / var(--fz,1));min-height:18px;margin-top:6px"></div><button id="pfs" style="width:100%;margin-top:4px;border:0;background:#0f766e;color:#fff;border-radius:8px;padding:10px;font:inherit;font-weight:700;cursor:pointer">Save</button><label style="display:flex;align-items:center;gap:10px;margin-top:12px;font-size:calc(14px / var(--fz,1))"><input type="checkbox" id="pft" style="width:20px;height:20px;margin:0;flex:none"> Show the countdown timer while I work</label><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:calc(12px / var(--fz,1));color:#777"><span>Version '+APP_VER+'</span><button id="pfu" style="border:1px solid #bbb;background:#fff;color:#111;border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer">Check for updates</button></div>');
+ var m=KC.modal('<b>'+(force?"Welcome! Enter your details":"My details")+'</b><div style="font-size:calc(13px / var(--fz,1));color:#555;margin:4px 0">'+(force?"Required once. ":"")+'Saved on this device. New cases start with this name and group (one English letter). You can still change them on any case.</div><input id="pfn" dir="auto" placeholder="Your name" value="'+hEsc(PF.name)+'" style="'+inp+'"><input id="pfg" dir="auto" placeholder="Your group (one letter, A–Z)" maxlength="1" autocapitalize="characters" value="'+hEsc(PF.group)+'" style="'+inp+'"><div id="pfe" style="color:#b91c1c;font-size:calc(13px / var(--fz,1));min-height:18px;margin-top:6px"></div><button id="pfs" style="width:100%;margin-top:4px;border:0;background:#0f766e;color:#fff;border-radius:8px;padding:10px;font:inherit;font-weight:700;cursor:pointer">Save</button><label style="display:flex;align-items:center;gap:10px;margin-top:12px;font-size:calc(14px / var(--fz,1))"><input type="checkbox" id="pft" style="width:20px;height:20px;margin:0;flex:none"> Show the countdown timer while I work</label><div id="pfGv"></div><div id="pfTm"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:calc(12px / var(--fz,1));color:#777"><span>Version '+APP_VER+'</span><button id="pfu" style="border:1px solid #bbb;background:#fff;color:#111;border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer">Check for updates</button></div>');
  if(force){var x=m.el.querySelector("[data-x]");if(x)x.style.display="none"}
  var pft=m.el.querySelector("#pft");pft.checked=localStorage.getItem("perio_timer_hide")!=="1";pft.onchange=function(){try{localStorage.setItem("perio_timer_hide",pft.checked?"0":"1")}catch(e){}timerChip()};
- m.el.querySelector("#pfu").onclick=function(){chkUpd(true)};
+ m.el.querySelector("#pfu").onclick=function(){chkUpd(true)};pfTimer(m.el.querySelector("#pfTm"));gvBox(m.el.querySelector("#pfGv"));
  function put(p){PM=p;PF=p;try{localStorage.setItem(PK,JSON.stringify(p))}catch(e){}}
  m.el.querySelector("#pfs").onclick=function(){
   var n=m.el.querySelector("#pfn").value.trim(),g=m.el.querySelector("#pfg").value.trim();
   if(!n||!g){m.el.querySelector("#pfe").textContent="Please enter both your name and your group.";return}
   if(!/^[A-Z]$/.test(g)){m.el.querySelector("#pfe").textContent="The group must be one English letter (A–Z).";return}
-  put({name:n,group:g});
+  if(PF.group&&g!==PF.group){var need=changeGroup(g,n);m.close();groupDone(need);return}
+  put(Object.assign({},PF,{name:n,group:g}));
   if(!LOCKED)[["student",n],["group",g]].forEach(function(x){if(x[1]&&!(S.t[x[0]]||"").trim()){S.t[x[0]]=x[1];$$('[data-t="'+x[0]+'"]').forEach(function(e){e.value=x[1]})}});
   m.close();toast("Saved.")};
 }
 var LOCKED=false,TRUSTED=[],SK=["s1","s2","s3","s4","s5","s_ex","st","g_grade","g_sig","g_sig2"];
-function caseStr(){if(!S.cid)S.cid=KC.rid();return KC.caseStr({id:S.cid,student:S.t.student,patient:S.t.pname,age:S.t.age,gender:S.gender,group:S.t.group,cli:cliStr(sums()),bop:($("#bopv").textContent||"").replace("%","")})}
+function gCands(){var a=[],add=function(x){x=String(x||"").trim();if(x&&a.indexOf(x)<0)a.push(x)};add(S.score&&S.score.g);add(S.t.group);(S.gh||[]).forEach(add);return a.length?a:[S.t.group]}
+function caseStr(g){if(!S.cid)S.cid=KC.rid();return KC.caseStr({id:S.cid,student:S.t.student,patient:S.t.pname,age:S.t.age,gender:S.gender,group:g!=null?g:S.t.group,cli:cliStr(sums()),bop:($("#bopv").textContent||"").replace("%","")})}
 function setF(k,v){var e=$('[data-t="'+k+'"]');if(e){e.value=v;S.t[k]=v}}
 async function applyScore(){
  SK.forEach(function(k){var e=$('[data-t="'+k+'"]');if(e){e.readOnly=true;e.tabIndex=-1;e.style.background="transparent"}});
  var sc=S.score;LOCKED=!!sc;
- if(sc){var ok=false;try{ok=await KC.verify(caseStr(),sc.doc,sc.P);if(ok&&TRUSTED.length)ok=TRUSTED.indexOf(await KC.fp(sc.P.pk))>=0}catch(e){}
+ if(sc){var ok=false;try{var gs0=gCands();for(var gj=0;gj<gs0.length&&!ok;gj++)ok=await KC.verify(caseStr(gs0[gj]),sc.doc,sc.P);if(ok&&TRUSTED.length)ok=TRUSTED.indexOf(await KC.fp(sc.P.pk))>=0}catch(e){}
   if(!ok){S.score=null;LOCKED=false;toast("The stored score couldn’t be verified and was removed.")}}
  var IDL=LOCKED||!!S.started;["student","group","pname","age"].forEach(function(k){$$('[data-t="'+k+'"]').forEach(function(e){e.readOnly=IDL})});var sb=$("#stb");if(sb)sb.textContent=LOCKED?"Scored ✓":S.started?"Start QR":"Start";
  $$('[data-t="group"]').forEach(function(e){e.maxLength=1;e.setAttribute("autocapitalize","characters");e.style.textTransform="uppercase"});
@@ -3538,11 +3545,11 @@ function scoreFlow(){
   b.onclick=async function(){
    var code=m.el.querySelector("#kc6").value.trim();if(code.length!==6){er.textContent="The code has 6 characters.";return}
    b.disabled=true;b.textContent="Checking…";er.textContent="";
-   var P=await KC.open(caseStr(),sc,code);
+   var P=null,gs=gCands(),gi=0,gu=S.t.group;for(;gi<gs.length&&!P;gi++){P=await KC.open(caseStr(gs[gi]),sc,code);if(P)gu=gs[gi]}
    if(P&&TRUSTED.length&&TRUSTED.indexOf(await KC.fp(P.pk))<0)P=null,er.textContent="This supervisor isn’t recognised.";
    if(!P){if(!er.textContent)er.textContent="Wrong code, or the BOP/calculus values on your sheet differ from what the doctor graded. Show the doctor your QR (QR button) so they can scan the exact values.";b.disabled=false;b.textContent="Apply score";return}
    if(S.score&&S.score.P){var oa=S.score.P.at||0,na=P.at||Date.now();if(na<oa){m.close();toast("A newer grade from Dr. "+S.score.doc+" is already on your sheet, so this older one was ignored.");return}}
-   S.score={doc:sc.doc,P:P,at:Date.now()};m.close();build();doSave();toast("Score from Dr. "+sc.doc+" applied and case saved.");
+   S.score={doc:sc.doc,P:P,at:Date.now(),g:gu};m.close();build();doSave();toast("Score from Dr. "+sc.doc+" applied and case saved.");
   };
  });
 }
@@ -3595,6 +3602,7 @@ function showStartQR(){
 function startFlow(){
  if(LOCKED){toast("This case has already been scored.");return}
  if(S.started){showStartQR();return}
+ if(PF.group&&(S.t.group||"").trim()&&S.t.group.trim()!==PF.group&&hasGraded()){sheetGroupAsk();return}
  var tv=function(k){return(S.t[k]||"").trim()};
  if(!tv("student")||!tv("group")||!tv("pname")||!tv("age")||!S.gender){toast("Fill in the student name, group, patient name, age and gender first.");return}
  var ccs=KC.CCL.filter(function(l){return S.cc[l]});if(!ccs.length){toast("Choose at least one chief complaint first.");return}
@@ -3607,8 +3615,69 @@ function startFlow(){
   clearTimeout(tm);m.close();S.started=true;S.startedAt=Date.now();startQRStr();doSave();build();showStartQR()};
 }
 
+/* ===== timer settings, group change ===== */
+var TCK="perio_timer_cfg_v1";
+function tCfg(){var c={};try{c=JSON.parse(localStorage.getItem(TCK)||"{}")||{}}catch(e){}return{end:c.end&&typeof c.end.h==="number"&&typeof c.end.m==="number"?c.end:null,y:typeof c.y==="number"&&c.y>0?c.y:30,r:typeof c.r==="number"&&c.r>=0?c.r:10}}
+function tCfgSave(c){try{localStorage.setItem(TCK,JSON.stringify(c))}catch(e){}}
+function h12(h,m){return(h%12||12)+":"+("0"+m).slice(-2)+" "+(h<12?"AM":"PM")}
+function fld(){return"display:block;width:100%;margin-top:6px;padding:9px;border:1px solid #bbb;border-radius:8px;font:inherit;font-size:calc(16px / var(--fz,1));box-sizing:border-box;background:#fff;color:#111"}
+function endEd(box){
+ var PR=[[10,30],[12,30],[14,30]],c=tCfg(),md=!c.end?"auto":PR.some(function(p){return p[0]===c.end.h&&p[1]===c.end.m})?c.end.h+":"+c.end.m:"c",e=c.end||{h:12,m:30},ho="",mo="",i;
+ for(i=1;i<=12;i++)ho+='<option'+(i===(e.h%12||12)?" selected":"")+'>'+i+'</option>';
+ for(i=0;i<60;i++)mo+='<option value="'+i+'"'+(i===e.m?" selected":"")+'>'+("0"+i).slice(-2)+'</option>';
+ box.innerHTML='<div style="font-weight:700;margin-top:12px">Timer ending time</div><select data-te style="'+fld()+'"><option value="auto">Automatic (10:30 AM, 12:30 PM or 2:30 PM)</option><option value="10:30">10:30 AM</option><option value="12:30">12:30 PM</option><option value="14:30">2:30 PM</option><option value="c">Custom…</option></select><div data-tc style="display:none;gap:6px"><select data-th style="'+fld()+'">'+ho+'</select><select data-tm style="'+fld()+'">'+mo+'</select><select data-ta style="'+fld()+'"><option'+(e.h<12?" selected":"")+'>AM</option><option'+(e.h>=12?" selected":"")+'>PM</option></select></div><div data-ts style="font-size:calc(12px / var(--fz,1));color:#555;margin-top:4px"></div>';
+ var q=function(s){return box.querySelector(s)},sel=q("[data-te]");sel.value=md;
+ function rd(){var v=sel.value;if(v==="auto")return null;if(v==="c")return{h:(+q("[data-th]").value)%12+(q("[data-ta]").value==="PM"?12:0),m:+q("[data-tm]").value};var p=v.split(":");return{h:+p[0],m:+p[1]}}
+ function sync(){q("[data-tc]").style.display=sel.value==="c"?"flex":"none";var en=rd(),cf=tCfg();cf.end=en;tCfgSave(cf);timerChip();
+  q("[data-ts]").textContent=en?"The timer ends at "+h12(en.h,en.m)+". A running case updates right away.":"The timer ends at the first of 10:30 AM, 12:30 PM or 2:30 PM that is still ahead when your case starts."}
+ box.addEventListener("change",sync);
+ q("[data-tc]").style.display=md==="c"?"flex":"none";
+ var cf0=tCfg();q("[data-ts]").textContent=cf0.end?"The timer ends at "+h12(cf0.end.h,cf0.end.m)+".":"The timer ends at the first of 10:30 AM, 12:30 PM or 2:30 PM that is still ahead when your case starts."}
+function thEd(box){
+ var c=tCfg(),st="width:70px;padding:8px;border:1px solid #bbb;border-radius:8px;font:inherit;font-size:calc(16px / var(--fz,1));text-align:center;background:#fff;color:#111",dot=function(col){return'<span style="width:14px;height:14px;border-radius:50%;background:'+col+';border:1px solid #888;flex:none"></span>'};
+ box.innerHTML='<div style="font-weight:700;margin-top:12px">Timer colours</div><div style="display:flex;align-items:center;gap:8px;margin-top:6px">'+dot("#facc15")+'<span style="flex:1">Yellow when</span><input data-ty inputmode="numeric" value="'+c.y+'" style="'+st+'"><span>min left</span></div><div style="display:flex;align-items:center;gap:8px;margin-top:6px">'+dot("#b91c1c")+'<span style="flex:1">Red when</span><input data-tr inputmode="numeric" value="'+c.r+'" style="'+st+'"><span>min left</span></div><div data-tx style="color:#b91c1c;font-size:calc(12px / var(--fz,1));min-height:16px;margin-top:4px"></div>';
+ box.addEventListener("change",function(ev){if(!ev.target.hasAttribute("data-ty")&&!ev.target.hasAttribute("data-tr"))return;
+  var y=parseInt(toEn(box.querySelector("[data-ty]").value),10),r=parseInt(toEn(box.querySelector("[data-tr]").value),10),er=box.querySelector("[data-tx]"),o=tCfg();
+  if(isNaN(y)||isNaN(r)||r<0||y<1||y>600||y<=r){er.textContent="Yellow must be a bigger number than red (red can be 0).";box.querySelector("[data-ty]").value=o.y;box.querySelector("[data-tr]").value=o.r;return}
+  er.textContent="";o.y=y;o.r=r;tCfgSave(o);timerChip()})}
+function pfTimer(box){box.innerHTML='<div id="pfE"></div><div id="pfH"></div>';endEd(box.querySelector("#pfE"));thEd(box.querySelector("#pfH"))}
+$("#tmr").addEventListener("click",function(){var hide=false;try{hide=localStorage.getItem("perio_timer_hide")==="1"}catch(e){}
+ try{localStorage.setItem("perio_timer_hide",hide?"0":"1")}catch(e){}timerChip();
+ var live=!!(S&&S.started&&!LOCKED);toast(hide?(live?"Timer shown.":"The timer will appear once your case is started."):"Timer hidden. Tap ⏱ to show it again.")});
+/* ---- group change ---- */
+function hasGraded(){return!!(S&&S.score)||hLoad().some(function(r){return r&&r.data&&r.data.score})}
+function pfPut(p){PM=p;PF=p;try{localStorage.setItem(PK,JSON.stringify(p))}catch(e){}}
+function applyGroupLocal(to){
+ var a=hLoad().slice();
+ a.forEach(function(r){if(!r||!r.data)return;var d=r.data;d.t=d.t||{};var og=d.t.group;if(og===to)return;d.gh=d.gh||[];if(og&&d.gh.indexOf(og)<0)d.gh.push(og);d.t.group=to;r.group=to});
+ hSave(a);
+ var og=S.t.group;if(og!==to){S.gh=S.gh||[];if(og&&S.gh.indexOf(og)<0)S.gh.push(og);S.t.group=to;$$('[data-t="group"]').forEach(function(e){e.value=to})}
+ if(ov.classList.contains("on"))hRender()}
+function changeGroup(g,n){
+ var og=PF.group||"",need=hasGraded(),np=Object.assign({},PF,{name:n,group:g});
+ if(need){var pc=PF.gchg;np.gchg=pc?(g===pc.from?null:{id:pc.id,from:pc.from,to:g,at:Date.now()}):{id:KC.rid(),from:og,to:g,at:Date.now()}}
+ pfPut(np);applyGroupLocal(g);return need&&!!np.gchg}
+function showGroupQR(){
+ var pc=PF.gchg;if(!pc){toast("There is no group change waiting for verification.");return}
+ var svg;try{svg=KC.qrSvg(KC.groupStr({id:pc.id,student:PF.name,from:pc.from,to:pc.to,at:pc.at}),"M")}catch(e){toast("Couldn’t build the QR code.");return}
+ var m=KC.modal('<b>Verify group change</b><div style="max-width:300px;margin:8px auto">'+svg+'</div><div style="text-align:center" dir="auto"><b>'+hEsc(PF.name)+'</b> · Group '+hEsc(pc.from)+' → <b>'+hEsc(pc.to)+'</b></div><div style="font-size:calc(12px / var(--fz,1));color:#555;text-align:center;margin-top:6px">Show this to the doctor. They scan it with <b>Scan student QR</b>, or when they start your case. Every doctor who knows your old group needs to scan it once.</div><button id="gdn" style="width:100%;margin-top:10px;border:1px solid #bbb;background:#fff;color:#111;border-radius:8px;padding:9px;font:inherit;cursor:pointer">All my doctors confirmed it</button>'),b=m.el.querySelector("#gdn"),armed=false,tm;
+ b.onclick=function(){if(!armed){armed=true;b.textContent="Press again to remove this reminder";b.style.background="#b91c1c";b.style.color="#fff";tm=setTimeout(function(){armed=false;b.textContent="All my doctors confirmed it";b.style.background="#fff";b.style.color="#111"},5000);return}clearTimeout(tm);pfPut(Object.assign({},PF,{gchg:null}));m.close();toast("Reminder removed.")}}
+function gvBox(box){
+ if(!box)return;var pc=PF.gchg;if(!pc){box.innerHTML="";return}
+ box.innerHTML='<div style="margin-top:12px;padding:8px;border:2px solid #b45309;border-radius:10px;background:#fffbeb;font-size:calc(14px / var(--fz,1))"><b>Group change waiting</b><div style="margin-top:4px">Group '+hEsc(pc.from)+' → <b>'+hEsc(pc.to)+'</b> has to be verified by a doctor.</div><button data-gq style="width:100%;margin-top:8px;border:0;background:#b45309;color:#fff;border-radius:8px;padding:9px;font:inherit;font-weight:700;cursor:pointer">Verify group change</button></div>';
+ box.querySelector("[data-gq]").onclick=showGroupQR}
+function groupDone(need){
+ var m=KC.modal('<b>Group changed to '+hEsc(PF.group)+'</b>'+(need?'<div style="margin:8px 0;padding:8px;border:2px solid #b45309;border-radius:10px;background:#fffbeb;font-size:calc(14px / var(--fz,1))"><b>A doctor must verify this</b><div style="margin-top:4px">You already have a graded case. Show the doctor the verification QR. Until they confirm it, a doctor may reject your new cases.</div><button id="gdq" style="width:100%;margin-top:8px;border:0;background:#b45309;color:#fff;border-radius:8px;padding:9px;font:inherit;font-weight:700;cursor:pointer">Verify group change</button></div>':'<div style="margin:8px 0;font-size:calc(14px / var(--fz,1))">All your saved cases now show Group '+hEsc(PF.group)+'.</div>')+'<div style="margin-top:10px;font-size:calc(14px / var(--fz,1))"><b>Update your timer ending time</b><div style="color:#555">Your group changed, so its time may be different. Check the ending time here.</div><div id="gte"></div></div><button id="gok" style="width:100%;margin-top:10px;border:0;background:#0f766e;color:#fff;border-radius:8px;padding:10px;font:inherit;font-weight:700;cursor:pointer">Done</button>');
+ endEd(m.el.querySelector("#gte"));
+ var q=m.el.querySelector("#gdq");if(q)q.onclick=showGroupQR;
+ m.el.querySelector("#gok").onclick=function(){m.close()}}
+function sheetGroupAsk(){
+ var g=(S.t.group||"").trim(),bs="border:1px solid #bbb;background:#fff;color:#111;border-radius:8px;padding:10px;font:inherit;cursor:pointer;width:100%;margin-top:8px";
+ var m=KC.modal('<b>Different group</b><div style="margin:8px 0;font-size:calc(14px / var(--fz,1))">This sheet says <b>Group '+hEsc(g)+'</b>, but your profile says <b>Group '+hEsc(PF.group)+'</b>. You already have a graded case, so a group change has to be verified by a doctor.</div><button id="sgK" style="'+bs+'">Keep Group '+hEsc(PF.group)+'</button><button id="sgC" style="'+bs+';background:#b45309;color:#fff;border-color:#b45309;font-weight:700">Change my group to '+hEsc(g)+'</button>');
+ m.el.querySelector("#sgK").onclick=function(){m.close();if(!LOCKED){S.t.group=PF.group;$$('[data-t="group"]').forEach(function(e){e.value=PF.group})}toast("The sheet now shows Group "+PF.group+".")};
+ m.el.querySelector("#sgC").onclick=function(){m.close();var need=changeGroup(g,PF.name);groupDone(need)}}
 /* ===== version + update check ===== */
-var APP_VER="1.0.27",APP_REPO="perio-case-sheet-student";
+var APP_VER="1.0.29",APP_REPO="perio-case-sheet-student";
 function uEsc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function vnum(v){return String(v||"").replace(/^[^\d]*/,"").split(/[.\-+]/).slice(0,4).map(function(x){return parseInt(x,10)||0})}
 function vNewer(a,b){var x=vnum(a),y=vnum(b);for(var i=0;i<4;i++){var p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
@@ -3640,15 +3709,24 @@ setTimeout(function(){var l=0;try{l=+localStorage.getItem("upd_last")||0}catch(e
 
 /* ===== countdown timer (student) ===== */
 var TSESS=[[10,30,"10:30 AM"],[12,30,"12:30 PM"],[14,30,"2:30 PM"]],TCHIP=null;
-function tEnd(ts){for(var i=0;i<TSESS.length;i++){var d=new Date(ts);d.setHours(TSESS[i][0],TSESS[i][1],0,0);if(d.getTime()-ts>=60000)return{t:d.getTime(),l:TSESS[i][2]}}return null}
+function tEnd(ts){var cf=tCfg();if(cf.end){var d0=new Date(ts);d0.setHours(cf.end.h,cf.end.m,0,0);return{t:d0.getTime(),l:h12(cf.end.h,cf.end.m)}}for(var i=0;i<TSESS.length;i++){var d=new Date(ts);d.setHours(TSESS[i][0],TSESS[i][1],0,0);if(d.getTime()-ts>=60000)return{t:d.getTime(),l:TSESS[i][2]}}return null}
 function tFmt(ms){var s=Math.floor(Math.abs(ms)/1000),p=function(n){return("0"+n).slice(-2)};return Math.floor(s/3600)+":"+p(Math.floor(s%3600/60))+":"+p(s%60)}
 function timerChip(){
  var hide=false;try{hide=localStorage.getItem("perio_timer_hide")==="1"}catch(e){}
- var end=(S&&S.started&&!LOCKED&&!hide)?tEnd(S.startedAt||Date.now()):null;
+ var live=!!(S&&S.started&&!LOCKED),end=(live&&!hide)?tEnd(S.startedAt||Date.now()):null,tb=$("#tmr");
+ if(tb){tb.classList.toggle("tmon",!!end);tb.title=hide?"Show the timer":"Hide the timer"}
  if(!end){if(TCHIP){TCHIP.remove();TCHIP=null}return}
- if(!TCHIP){TCHIP=document.createElement("div");TCHIP.style.cssText="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:50;color:#fff;border-radius:20px;padding:6px 8px 6px 14px;font:700 calc(16px / var(--fz,1)) Calibri,Carlito,Arial,sans-serif;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.35);white-space:nowrap";TCHIP.innerHTML='<span data-tc></span><button aria-label="Hide timer" style="border:0;background:rgba(255,255,255,.25);color:#fff;border-radius:50%;width:26px;height:26px;font:inherit;cursor:pointer;line-height:1">×</button>';document.body.appendChild(TCHIP);TCHIP.querySelector("button").onclick=function(){try{localStorage.setItem("perio_timer_hide","1")}catch(e){}timerChip();toast("Timer hidden. You can show it again in Profile.")}}
- var left=end.t-Date.now();TCHIP.firstChild.textContent=left>0?"⏱ "+tFmt(left)+" · until "+end.l:"⏱ Time is up ("+end.l+")";
- TCHIP.style.background=left<=0?"#b91c1c":left<600000?"#b45309":"#0f766e"}
+ var inH=ov.classList.contains("on"),cf=tCfg();
+ if(!TCHIP){TCHIP=document.createElement("div");TCHIP.innerHTML='<span data-tc></span><button aria-label="Hide timer" style="border:0;background:rgba(255,255,255,.25);color:inherit;border-radius:50%;width:26px;height:26px;font:inherit;cursor:pointer;line-height:1;padding:0">×</button>';
+  TCHIP.querySelector("button").onclick=function(){try{localStorage.setItem("perio_timer_hide","1")}catch(e){}timerChip();toast("Timer hidden. Tap the ⏱ button to show it again.")}}
+ var fnt="font:700 calc("+(inH?13:16)+"px / var(--fz,1)) Calibri,Carlito,Arial,sans-serif;";
+ if(inH){var hh=ov.querySelector(".hh");if(TCHIP.parentNode!==hh)hh.insertBefore(TCHIP,$("#hx"));TCHIP.style.cssText="border-radius:16px;padding:4px 10px;display:flex;align-items:center;white-space:nowrap;"+fnt}
+ else{if(TCHIP.parentNode!==document.body)document.body.appendChild(TCHIP);TCHIP.style.cssText="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:50;border-radius:20px;padding:6px 8px 6px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.35);white-space:nowrap;"+fnt}
+ TCHIP.querySelector("button").style.display=inH?"none":"";
+ var left=end.t-Date.now(),bg="#0f766e",fg="#fff";
+ if(left<=cf.r*60000||left<=0){bg="#b91c1c"}else if(left<=cf.y*60000){bg="#facc15";fg="#111"}
+ TCHIP.style.background=bg;TCHIP.style.color=fg;
+ TCHIP.firstChild.textContent=left>0?"⏱ "+tFmt(left)+(inH?"":" · until "+end.l):"⏱ Time is up"+(inH?"":" ("+end.l+")")}
 setInterval(timerChip,1000);
 
 S=fresh();build();if(!PF.name||!PF.group)setTimeout(function(){pfOpen(true)},0);
